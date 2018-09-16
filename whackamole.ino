@@ -3,6 +3,7 @@
 #define maxLEDs 5
 #define minIntervalMS 1000
 #define plusIntervalMS 500
+#define decIntervalMS 100
 
 typedef struct myTimer_t {
 	uint32_t oldTime;
@@ -12,7 +13,6 @@ typedef struct myTimer_t {
 
 typedef struct state_t {
 	uint32_t interval;
-	uint32_t decInterval;
 	byte molesWhacked;
 	bool missed;
 	bool start;
@@ -57,7 +57,6 @@ void loop() {
 void reset(state_t &s) {
 	s.missed = false;
 	s.start = false;
-	s.decInterval = 100;
 	s.molesWhacked = 0;
 	LEDsOff(s);
 }
@@ -101,7 +100,7 @@ void playGame(state_t &state) {
 				if(getButton(i)) {
 					if(i == mole) {
 						state.molesWhacked++;
-						state.interval -= state.decInterval;
+						state.interval -= decIntervalMS;
 						state.led[mole] = flipLED(mole, state.led[mole]);
 						snprintf(strOut, strSize, "Moles Hit: %3d || New interval %4d", state.molesWhacked, state.interval);
 						Serial.println(strOut);
