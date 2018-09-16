@@ -41,16 +41,15 @@ void setup() {
 }
 
 void loop() {
-	//myTimer_t timer;
 	state_t state;
 	while(true) {
-		delayInput();
 		reset(state);
 		Serial.println("Select speed of new game.");
 		Serial.println("Very slow to very fast with button left to right.");
 		setGameSpeed(state);
 		playGame(state);
 		Serial.println("GAME OVER!");
+		delayInput();
 	}
 }
 
