@@ -63,8 +63,6 @@ void reset(state_t &s) {
 void setGameSpeed(state_t &s) {
 	myTimer_t sweepTimer;
 	setTimer(sweepTimer, 75);
-	byte strSize = 35;
-	char strOut[strSize];
 
 	while(!s.start) {
 		for(byte i = 0; i < maxLEDs; i++) {
@@ -101,7 +99,8 @@ void playGame(state_t &state) {
 						state.molesWhacked++;
 						state.interval -= decIntervalMS;
 						state.led[mole] = flipLED(mole, state.led[mole]);
-						snprintf(strOut, strSize, "Moles Hit: %3d || New interval %4d", state.molesWhacked, state.interval);
+						snprintf(strOut, strSize, "Moles Hit: %3d || New interval %4d",
+							state.molesWhacked, state.interval);
 						Serial.println(strOut);
 						ok = true;
 						break;
