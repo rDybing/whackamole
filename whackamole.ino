@@ -1,9 +1,10 @@
 #include <Bounce2.h>
+#include <LiquidCrystal.h>
 
-#define maxLEDs 5
+#define maxLEDs 4
 #define minIntervalMS 1000
 #define plusIntervalMS 500
-#define decIntervalMS 100
+#define decIntervalMS 25
 
 typedef struct myTimer_t {
 	uint32_t oldTime;
@@ -19,15 +20,17 @@ typedef struct state_t {
 	bool led[maxLEDs];
 };
 
-const byte butPin[maxLEDs] = {2, 3, 4, 5, 6};
-const byte ledPin[maxLEDs] = {9, 10, 11, 12, 13};
+const byte rs = 3, en = 2, d4 = A2, d5 = A3, d6 = A4, d7 = A5;
+const byte butPin[maxLEDs] = {6, 7, 8, 9};
+const byte ledPin[maxLEDs] = {10, 11, 12, 13};
+
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 Bounce button[maxLEDs] = {
 	Bounce(butPin[0], maxLEDs),
 	Bounce(butPin[1], maxLEDs),
 	Bounce(butPin[2], maxLEDs),
-	Bounce(butPin[3], maxLEDs),
-	Bounce(butPin[4], maxLEDs)
+	Bounce(butPin[3], maxLEDs)
 };
 
 void setup() {
@@ -37,18 +40,15 @@ void setup() {
 		button[i].attach(butPin[i]);
 	}
 	randomSeed(analogRead(0));
-	Serial.begin(9600);
+	lcd.begin(16, 2);
 }
 
 void loop() {
 	state_t state;
 	while(true) {
 		reset(state);
-		Serial.println("Select speed of new game.");
-		Serial.println("Very slow to very fast with button left to right.");
 		setGameSpeed(state);
 		playGame(state);
-		Serial.println("GAME OVER!");
 		delayInput();
 	}
 }
@@ -58,6 +58,7 @@ void reset(state_t &s) {
 	s.start = false;
 	s.molesWhacked = 0;
 	LEDsOff(s);
+	lcdMenu();
 }
 
 void setGameSpeed(state_t &s) {
@@ -76,19 +77,19 @@ void setGameSpeed(state_t &s) {
 		}
 	}
 	LEDsOff(s);
+	lcdGameStart(s.interval);
 }
 
 void playGame(state_t &state) {
 	myTimer_t gameTimer;
-	byte strSize = 36;
-	char strOut[strSize];
 	byte mole;
 	bool ok;
 	
 	countDown(state);
+	lcdGameConst();
 	// start rounds
 	while(!state.missed) {
-		mole = byte(random(0, 5));
+		mole = byte(random(0, maxLEDs));
 		state.led[mole] = flipLED(mole, state.led[mole]);
 		setTimer(gameTimer, state.interval);
 		ok = false;
@@ -99,9 +100,7 @@ void playGame(state_t &state) {
 						state.molesWhacked++;
 						state.interval -= decIntervalMS;
 						state.led[mole] = flipLED(mole, state.led[mole]);
-						snprintf(strOut, strSize, "Moles Hit: %3d || New interval %4d",
-							state.molesWhacked, state.interval);
-						Serial.println(strOut);
+						lcdGameState(state.molesWhacked, state.interval);
 						ok = true;
 						break;
 					} else {
@@ -114,6 +113,53 @@ void playGame(state_t &state) {
 			state.missed = true;
 		}
 	}
+	lcdGameOver(state.molesWhacked, state.interval);
+}
+
+void lcdMenu() {
+	lcd.clear();
+	lcd.print("Set Game Speed:");
+	lcd.setCursor(0,1);
+	lcd.print("Button 1 -> 4");
+}
+
+void lcdGameStart(uint32_t interval) {
+	byte strSize = 16;
+	char strInterval[strSize];
+	snprintf(strInterval, strSize, "Interval: %4d", interval);
+	lcd.clear();
+	lcd.print("Game Starting!");
+	lcd.setCursor(0,1);
+	lcd.print(strInterval);
+}
+
+void lcdGameConst() {
+	lcd.clear();
+	lcd.print("Moles Hit:");
+	lcd.setCursor(0,1);
+	lcd.print("Interval :");
+}
+
+void lcdGameState(byte moles, uint32_t interval) {
+	byte strSize = 5;
+	char strMoles[strSize];
+	char strInterval[strSize];
+	snprintf(strMoles, strSize, "%3d", moles);
+	snprintf(strInterval, strSize, "%4d", interval);
+	lcd.setCursor(12,0);
+	lcd.print(strMoles);
+	lcd.setCursor(11,1);
+	lcd.print(strInterval);
+}
+
+void lcdGameOver(byte moles, uint32_t interval) {
+	byte strSize = 16;
+	char strScore[strSize];
+	snprintf(strScore, strSize, "M: %3d-I: %4d", moles, interval);
+	lcd.clear();
+	lcd.print("GAME OVER!");
+	lcd.setCursor(0,1);
+	lcd.print(strScore);
 }
 
 void countDown(state_t &s) {
@@ -137,9 +183,9 @@ void countDown(state_t &s) {
 
 void delayInput() {
 	myTimer_t delayTimer;
-	setTimer(delayTimer, 1000);
+	setTimer(delayTimer, 5000);
 	while(!getTimer(delayTimer)) {
-		flipLED(random(0, 5), random(0,1));
+		flipLED(random(0, maxLEDs), random(0,1));
 	}
 }
 
